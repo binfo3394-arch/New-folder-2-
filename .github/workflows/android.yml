@@ -30,20 +30,15 @@ jobs:
     - name: Create google-services.json for Parent App
       run: echo "${{ secrets.PARENT_GOOGLE_SERVICES }}" > parent-app/app/google-services.json
 
-    - name: Make Gradlew Executable
-      run: |
-        chmod +x child-app/gradlew
-        chmod +x parent-app/gradlew
-
     - name: Build Child App APK
       run: |
         cd child-app
-        ./gradlew assembleDebug
+        gradle assembleDebug
 
     - name: Build Parent App APK
       run: |
         cd parent-app
-        ./gradlew assembleDebug
+        gradle assembleDebug
 
     - name: Upload Child APK
       uses: actions/upload-artifact@v4
