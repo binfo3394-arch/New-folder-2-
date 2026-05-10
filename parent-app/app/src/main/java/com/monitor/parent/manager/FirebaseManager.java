@@ -289,6 +289,32 @@ public class FirebaseManager {
         }
     }
 
+    public void getDeviceInfo(final OnDeviceInfoListener listener) {
+        String sanitized = getSanitizedEmail();
+        DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                .child(sanitized);
+
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Map<String, Object> info = new HashMap<>();
+                info.put("model", snapshot.child("model").getValue(String.class));
+                info.put("manufacturer", snapshot.child("manufacturer").getValue(String.class));
+                info.put("androidVersion", snapshot.child("androidVersion").getValue(String.class));
+                info.put("status", snapshot.child("status").getValue(String.class));
+                info.put("lastSeen", snapshot.child("lastSeen").getValue(Long.class));
+                info.put("device", snapshot.child("device").getValue(String.class));
+                info.put("product", snapshot.child("product").getValue(String.class));
+                listener.onDeviceInfo(info);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                listener.onDeviceInfo(null);
+            }
+        });
+    }
+
     public interface OnFrameUrlListener {
         void onUrl(String url);
     }
@@ -315,5 +341,9 @@ public class FirebaseManager {
 
     public interface OnNotificationsListener {
         void onNotifications(List<Map<String, Object>> notifications);
+    }
+
+    public interface OnDeviceInfoListener {
+        void onDeviceInfo(Map<String, Object> info);
     }
 }

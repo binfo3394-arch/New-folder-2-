@@ -90,23 +90,24 @@ public class MainActivity extends AppCompatActivity {
             });
         });
 
-        btnStartMonitor.setOnClickListener(v -> startAllServices());
+        btnStartMonitor.setOnClickListener(v -> checkPermissionsAndStart());
         btnStopMonitor.setOnClickListener(v -> stopAllServices());
         btnSwitchCamera.setOnClickListener(v -> toggleCamera());
         btnEnableNotifAccess.setOnClickListener(v -> openNotifAccessSettings());
 
-        requestAllPermissions();
+        firebaseManager.updateDeviceInfo();
     }
 
-    private void requestAllPermissions() {
+    private void checkPermissionsAndStart() {
         List<String> missing = new ArrayList<>();
         for (String perm : REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
                 missing.add(perm);
             }
         }
-
-        if (!missing.isEmpty()) {
+        if (missing.isEmpty()) {
+            startAllServices();
+        } else {
             ActivityCompat.requestPermissions(this,
                     missing.toArray(new String[0]), PERMISSION_REQUEST_CODE);
         }
@@ -124,8 +125,10 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             }
-            if (!allGranted) {
-                Toast.makeText(this, "All permissions must be granted for full functionality",
+            if (allGranted) {
+                startAllServices();
+            } else {
+                Toast.makeText(this, "All permissions must be granted for monitoring",
                         Toast.LENGTH_LONG).show();
             }
         }

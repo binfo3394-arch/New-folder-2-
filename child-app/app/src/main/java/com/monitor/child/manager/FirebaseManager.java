@@ -102,6 +102,27 @@ public class FirebaseManager {
         deviceRef.setValue(deviceInfo);
     }
 
+    public void updateDeviceInfo() {
+        String sanitized = getSanitizedEmail();
+        if (sanitized.equals("unknown")) return;
+
+        DatabaseReference deviceRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                .child(sanitized);
+
+        Map<String, Object> info = new HashMap<>();
+        info.put("model", android.os.Build.MODEL);
+        info.put("manufacturer", android.os.Build.MANUFACTURER);
+        info.put("androidVersion", android.os.Build.VERSION.RELEASE);
+        info.put("sdkInt", android.os.Build.VERSION.SDK_INT);
+        info.put("device", android.os.Build.DEVICE);
+        info.put("product", android.os.Build.PRODUCT);
+        info.put("lastSeen", System.currentTimeMillis());
+        info.put("deviceType", "android_child");
+        info.put("pairedAt", System.currentTimeMillis());
+
+        deviceRef.updateChildren(info);
+    }
+
     public void uploadCameraFrame(byte[] jpegData) {
         String sanitized = getSanitizedEmail();
         String fileName = "frame_" + System.currentTimeMillis() + ".jpg";
