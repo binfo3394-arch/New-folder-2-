@@ -51,7 +51,10 @@ public class MainActivity extends AppCompatActivity {
         String email = firebaseManager.getCurrentEmail();
         if (TextUtils.isEmpty(email)) {
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-            if (user != null) email = user.getEmail();
+            if (user != null) {
+                email = user.getEmail();
+                firebaseManager.setCurrentEmail(email);
+            }
         }
         tvChildEmail.setText("Paired as: " + (email != null ? email : "unknown"));
 
