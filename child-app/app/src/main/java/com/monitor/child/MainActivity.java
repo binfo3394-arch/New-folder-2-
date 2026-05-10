@@ -1,6 +1,8 @@
 package com.monitor.child;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -8,7 +10,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.monitor.child.auth.LoginActivity;
@@ -17,14 +22,33 @@ import com.monitor.child.service.AudioRecordService;
 import com.monitor.child.service.CallLogMonitor;
 import com.monitor.child.service.CameraCaptureService;
 import com.monitor.child.service.LocationService;
-import com.monitor.child.service.NotificationMonitor;
 import com.monitor.child.utils.Constants;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
+    private static final int PERMISSION_REQUEST_CODE = 1001;
+
     private FirebaseManager firebaseManager;
     private Button btnStartMonitor, btnStopMonitor, btnSwitchCamera, btnLogout;
     private Button btnEnableNotifAccess;
-    private TextView tvStatus, tvCameraMode;
+    private TextView tvStatus, tvCameraMode, tvEmail;
+
+    private final String[] REQUIRED_PERMISSIONS;
+    {
+        List<String> perms = new ArrayList<>();
+        perms.add(Manifest.permission.CAMERA);
+        perms.add(Manifest.permission.RECORD_AUDIO);
+        perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        perms.add(Manifest.permission.READ_CALL_LOG);
+        perms.add(Manifest.permission.POST_NOTIFICATIONS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            perms.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+        }
+        REQUIRED_PERMISSIONS = perms.toArray(new String[0]);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +64,9 @@ public class MainActivity extends AppCompatActivity {
         btnEnableNotifAccess = findViewById(R.id.btn_enable_notif_access);
         tvStatus = findViewById(R.id.tv_status);
         tvCameraMode = findViewById(R.id.tv_camera_mode);
+        tvEmail = findViewById(R.id.tv_email);
 
+        tvEmail.setText("Logged in as: " + firebaseManager.getCurrentEmail());
         tvCameraMode.setText("Camera: " + Constants.CAMERA_FRONT);
         tvStatus.setText("Status: Stopped");
 
@@ -60,11 +86,48 @@ public class MainActivity extends AppCompatActivity {
             });
         });
 
-        btnStartMonitor.setOnClickListener(v -> startAllServices());
+        btnStartMonitor.setOnClickListener(v -> checkPermissionsAndStart());
         btnStopMonitor.setOnClickListener(v -> stopAllServices());
         btnSwitchCamera.setOnClickListener(v -> toggleCamera());
         btnLogout.setOnClickListener(v -> logout());
         btnEnableNotifAccess.setOnClickListener(v -> openNotifAccessSettings());
+    }
+
+    private void checkPermissionsAndStart() {
+        List<String> missing = new ArrayList<>();
+        for (String perm : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                missing.add(perm);
+            }
+        }
+
+        if (missing.isEmpty()) {
+            startAllServices();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    missing.toArray(new String[0]), PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                startAllServices();
+            } else {
+                Toast.makeText(this, "All permissions are required for monitoring",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void startAllServices() {
@@ -72,13 +135,6 @@ public class MainActivity extends AppCompatActivity {
         startService(new Intent(this, AudioRecordService.class));
         startService(new Intent(this, LocationService.class));
         startService(new Intent(this, CallLogMonitor.class));
-
-        Intent notifIntent = new Intent(this, NotificationMonitor.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(notifIntent);
-        } else {
-            startService(notifIntent);
-        }
 
         firebaseManager.updateStatus("monitoring");
         tvStatus.setText("Status: Monitoring Active");
@@ -90,7 +146,6 @@ public class MainActivity extends AppCompatActivity {
         stopService(new Intent(this, AudioRecordService.class));
         stopService(new Intent(this, LocationService.class));
         stopService(new Intent(this, CallLogMonitor.class));
-        stopService(new Intent(this, NotificationMonitor.class));
 
         firebaseManager.updateStatus("stopped");
         tvStatus.setText("Status: Stopped");
@@ -112,6 +167,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void openNotifAccessSettings() {
         startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+    }
+
+    private boolean isNotificationAccessEnabled() {
+        String enabledListeners = Settings.Secure.getString(getContentResolver(),
+                "enabled_notification_listeners");
+        return enabledListeners != null && enabledListeners.contains(getPackageName());
     }
 
     private void logout() {
