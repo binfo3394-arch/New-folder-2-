@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             });
         });
 
-        btnStartMonitor.setOnClickListener(v -> checkPermissionsAndStart());
+        btnStartMonitor.setOnClickListener(v -> startAllServices());
         btnStopMonitor.setOnClickListener(v -> stopAllServices());
         btnSwitchCamera.setOnClickListener(v -> toggleCamera());
         btnEnableNotifAccess.setOnClickListener(v -> openNotifAccessSettings());
