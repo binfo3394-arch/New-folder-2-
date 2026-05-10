@@ -78,12 +78,6 @@ public class AudioRecordService extends Service {
 
             Log.d(TAG, "Audio recording started: " + currentAudioFile.getName());
 
-            scheduler.schedule(() -> {
-                if (currentAudioFile != null && currentAudioFile.exists()) {
-                    FirebaseManager.getInstance().uploadAudioChunk(currentAudioFile);
-                }
-            }, Constants.AUDIO_CHUNK_DURATION_MS - 500, TimeUnit.MILLISECONDS);
-
         } catch (IOException | SecurityException e) {
             Log.e(TAG, "Error starting audio recording: " + e.getMessage());
         }
