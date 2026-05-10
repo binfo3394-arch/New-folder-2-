@@ -1,6 +1,7 @@
 package com.monitor.parent;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -10,6 +11,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.monitor.parent.adapters.MonitorPagerAdapter;
 import com.monitor.parent.manager.FirebaseManager;
 
@@ -32,7 +34,12 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.view_pager);
         tabLayout = findViewById(R.id.tab_layout);
 
-        tvChildEmail.setText("Child: " + firebaseManager.getCurrentEmail());
+        String email = firebaseManager.getCurrentEmail();
+        if (TextUtils.isEmpty(email)) {
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null) email = user.getEmail();
+        }
+        tvChildEmail.setText("Child: " + (email != null ? email : "unknown"));
 
         pagerAdapter = new MonitorPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
