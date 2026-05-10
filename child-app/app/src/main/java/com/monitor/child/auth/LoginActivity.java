@@ -7,7 +7,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,6 +32,7 @@ public class LoginActivity extends AppCompatActivity {
 
         FirebaseUser currentUser = firebaseManager.getAuth().getCurrentUser();
         if (currentUser != null) {
+            firebaseManager.setCurrentEmail(currentUser.getEmail());
             goToMain();
             return;
         }
