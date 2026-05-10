@@ -64,13 +64,6 @@ public class CameraCaptureService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(Constants.NOTIFICATION_ID_CAMERA, createNotification());
-
-        FirebaseManager.getInstance().setOnCommandListener(command -> {
-            if (Constants.COMMAND_SWITCH_CAMERA.equals(command)) {
-                switchCamera();
-            }
-        });
-
         startCapture();
         return START_STICKY;
     }
