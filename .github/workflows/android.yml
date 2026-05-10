@@ -21,23 +21,27 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.5'
-
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+
+    - name: Add Android SDK to local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > child-app/local.properties
+        echo "sdk.dir=$ANDROID_HOME" > parent-app/local.properties
 
     - name: Build Child App APK
       run: |
         cd child-app
-        gradle assembleDebug --no-daemon
+        gradle wrapper --gradle-version 8.5 --no-daemon
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon
 
     - name: Build Parent App APK
       run: |
         cd parent-app
-        gradle assembleDebug --no-daemon
+        gradle wrapper --gradle-version 8.5 --no-daemon
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon
 
     - name: Upload Child APK
       uses: actions/upload-artifact@v4
