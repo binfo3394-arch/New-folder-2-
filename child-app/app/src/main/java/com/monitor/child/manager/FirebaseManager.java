@@ -54,6 +54,13 @@ public class FirebaseManager {
         return currentEmail;
     }
 
+    public void setCurrentEmail(String email) {
+        this.currentEmail = email;
+        if (email != null) {
+            startListeningForCommands();
+        }
+    }
+
     public String getSanitizedEmail() {
         if (currentEmail == null) return "unknown";
         return currentEmail.replace(".", "_").replace("@", "_at_");
