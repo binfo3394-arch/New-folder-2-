@@ -31,6 +31,7 @@ public class LoginActivity extends AppCompatActivity {
 
         FirebaseUser currentUser = firebaseManager.getAuth().getCurrentUser();
         if (currentUser != null) {
+            firebaseManager.setCurrentEmail(currentUser.getEmail());
             goToMain();
             return;
         }
