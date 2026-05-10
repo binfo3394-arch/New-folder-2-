@@ -52,6 +52,10 @@ public class FirebaseManager {
         return currentEmail;
     }
 
+    public void setCurrentEmail(String email) {
+        this.currentEmail = email;
+    }
+
     public String getSanitizedEmail() {
         if (currentEmail == null) return "unknown";
         return currentEmail.replace(".", "_").replace("@", "_at_");
@@ -159,11 +163,19 @@ public class FirebaseManager {
     }
 
     public void getChildStatus(final OnStatusListener listener) {
+        if (childStatusListener != null) {
+            String sanitized = getSanitizedEmail();
+            mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                    .child(sanitized)
+                    .removeEventListener(childStatusListener);
+            childStatusListener = null;
+        }
+
         String sanitized = getSanitizedEmail();
         DatabaseReference statusRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized);
 
-        statusRef.addValueEventListener(new ValueEventListener() {
+        childStatusListener = statusRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String status = snapshot.child("status").getValue(String.class);
@@ -251,6 +263,13 @@ public class FirebaseManager {
     }
 
     public void cleanup() {
+        if (childStatusListener != null) {
+            String sanitized = getSanitizedEmail();
+            DatabaseReference statusRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                    .child(sanitized);
+            statusRef.removeEventListener(childStatusListener);
+            childStatusListener = null;
+        }
     }
 
     public interface OnFrameUrlListener {
