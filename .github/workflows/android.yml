@@ -21,6 +21,11 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.5'
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
@@ -33,12 +38,12 @@ jobs:
     - name: Build Child App APK
       run: |
         cd child-app
-        gradle assembleDebug
+        gradle assembleDebug --no-daemon
 
     - name: Build Parent App APK
       run: |
         cd parent-app
-        gradle assembleDebug
+        gradle assembleDebug --no-daemon
 
     - name: Upload Child APK
       uses: actions/upload-artifact@v4
