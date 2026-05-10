@@ -29,12 +29,6 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Create google-services.json for Child App
-      run: echo "${{ secrets.CHILD_GOOGLE_SERVICES }}" > child-app/app/google-services.json
-
-    - name: Create google-services.json for Parent App
-      run: echo "${{ secrets.PARENT_GOOGLE_SERVICES }}" > parent-app/app/google-services.json
-
     - name: Build Child App APK
       run: |
         cd child-app
