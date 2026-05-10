@@ -5,6 +5,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
 import com.monitor.child.utils.Constants;
 
 public class ChildApp extends Application {
@@ -15,7 +17,22 @@ public class ChildApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        initFirebase();
         createNotificationChannels();
+    }
+
+    private void initFirebase() {
+        if (FirebaseApp.getApps(this).isEmpty()) {
+            FirebaseOptions options = new FirebaseOptions.Builder()
+                    .setApplicationId("1:792529827830:android:0e5d3c30731fd172b079d7")
+                    .setApiKey("AIzaSyA1Jc_WVmTMzOEqRXThTm4oJEXzqhvpsiM")
+                    .setProjectId("sanchat-611e1")
+                    .setStorageBucket("sanchat-611e1.firebasestorage.app")
+                    .setGcmSenderId("792529827830")
+                    .setDatabaseUrl("https://sanchat-611e1-default-rtdb.firebaseio.com")
+                    .build();
+            FirebaseApp.initializeApp(this, options);
+        }
     }
 
     private void createNotificationChannels() {

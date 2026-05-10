@@ -28,7 +28,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Monitor"
         android:usesCleartextTraffic="true"
-        tools:targetApi="35">
+        tools:targetApi="35"
+        tools:node="merge">
+
+        <provider
+            android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
 
         <activity
             android:name=".auth.LoginActivity"
