@@ -20,7 +20,9 @@ import com.google.firebase.storage.UploadTask;
 import com.monitor.child.utils.Constants;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FirebaseManager {
@@ -71,6 +73,7 @@ public class FirebaseManager {
                 .continueWith(task -> {
                     if (task.isSuccessful()) {
                         currentEmail = email;
+                        initDeviceNode();
                         startListeningForCommands();
                     }
                     return mAuth.getCurrentUser();
@@ -265,12 +268,16 @@ public class FirebaseManager {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (commandListener != null) {
+                    List<DatabaseReference> toRemove = new ArrayList<>();
                     for (DataSnapshot child : snapshot.getChildren()) {
                         String command = child.getValue(String.class);
                         if (command != null) {
                             commandListener.onCommandReceived(command);
-                            child.getRef().removeValue();
+                            toRemove.add(child.getRef());
                         }
+                    }
+                    for (DatabaseReference ref : toRemove) {
+                        ref.removeValue();
                     }
                 }
             }

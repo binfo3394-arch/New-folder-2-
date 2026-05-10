@@ -23,7 +23,6 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 
 import com.monitor.child.ChildApp;
 import com.monitor.child.MainActivity;
@@ -61,9 +60,15 @@ public class CameraCaptureService extends Service {
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
+    public static final String ACTION_SWITCH_CAMERA = "com.monitor.child.action.SWITCH_CAMERA";
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(Constants.NOTIFICATION_ID_CAMERA, createNotification());
+        if (intent != null && ACTION_SWITCH_CAMERA.equals(intent.getAction())) {
+            switchCamera();
+            return START_STICKY;
+        }
         startCapture();
         return START_STICKY;
     }
@@ -82,11 +87,7 @@ public class CameraCaptureService extends Service {
                 return;
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
-            } else {
-                cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
-            }
+            cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
         } catch (CameraAccessException | SecurityException e) {
             Log.e(TAG, "Error opening camera: " + e.getMessage());
         }
@@ -117,7 +118,15 @@ public class CameraCaptureService extends Service {
         try {
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap configMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (configMap == null) {
+                Log.e(TAG, "No config map for camera");
+                return;
+            }
             Size[] sizes = configMap.getOutputSizes(ImageFormat.JPEG);
+            if (sizes == null || sizes.length == 0) {
+                Log.e(TAG, "No output sizes available for JPEG");
+                return;
+            }
             Size captureSize = sizes[0];
 
             imageReader = ImageReader.newInstance(captureSize.getWidth(), captureSize.getHeight(),
@@ -151,7 +160,6 @@ public class CameraCaptureService extends Service {
         try {
             CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             builder.addTarget(imageReader.getSurface());
-            builder.set(CaptureRequest.JPEG_QUALITY, (byte) 50);
             builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
 
             captureSession.setRepeatingRequest(builder.build(), null, backgroundHandler);
@@ -175,6 +183,8 @@ public class CameraCaptureService extends Service {
             captureSession.capture(builder.build(), null, backgroundHandler);
         } catch (CameraAccessException e) {
             Log.e(TAG, "Still capture error: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "Capture session closed: " + e.getMessage());
         }
     }
 
@@ -190,11 +200,13 @@ public class CameraCaptureService extends Service {
         }
     };
 
-    private void switchCamera() {
-        closeCamera();
-        currentCamera = currentCamera.equals(Constants.CAMERA_FRONT) ?
-                Constants.CAMERA_BACK : Constants.CAMERA_FRONT;
-        openCamera();
+    public void switchCamera() {
+        backgroundHandler.post(() -> {
+            closeCamera();
+            currentCamera = currentCamera.equals(Constants.CAMERA_FRONT) ?
+                    Constants.CAMERA_BACK : Constants.CAMERA_FRONT;
+            openCamera();
+        });
     }
 
     private String getCameraId(String direction) {

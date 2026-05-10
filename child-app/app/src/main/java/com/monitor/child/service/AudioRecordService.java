@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 public class AudioRecordService extends Service {
     private static final String TAG = "AudioRecordService";
 
+    private final Object recorderLock = new Object();
     private MediaRecorder mediaRecorder;
     private ScheduledExecutorService scheduler;
     private File currentAudioFile;
@@ -52,8 +53,10 @@ public class AudioRecordService extends Service {
     }
 
     private void recordChunk() {
-        stopCurrentRecording();
-        startNewRecording();
+        synchronized (recorderLock) {
+            stopCurrentRecording();
+            startNewRecording();
+        }
     }
 
     private void startNewRecording() {
@@ -80,22 +83,29 @@ public class AudioRecordService extends Service {
 
         } catch (IOException | SecurityException e) {
             Log.e(TAG, "Error starting audio recording: " + e.getMessage());
+            if (mediaRecorder != null) {
+                mediaRecorder.release();
+                mediaRecorder = null;
+            }
         }
     }
 
     private void stopCurrentRecording() {
+        if (mediaRecorder == null) return;
         try {
-            if (mediaRecorder != null) {
-                mediaRecorder.stop();
-                mediaRecorder.release();
-                mediaRecorder = null;
-
-                if (currentAudioFile != null && currentAudioFile.exists()) {
-                    FirebaseManager.getInstance().uploadAudioChunk(currentAudioFile);
-                }
-            }
+            mediaRecorder.stop();
         } catch (Exception e) {
-            Log.e(TAG, "Error stopping recording: " + e.getMessage());
+            Log.e(TAG, "Error stopping recorder: " + e.getMessage());
+        }
+        try {
+            mediaRecorder.release();
+        } catch (Exception e) {
+            Log.e(TAG, "Error releasing recorder: " + e.getMessage());
+        }
+        mediaRecorder = null;
+
+        if (currentAudioFile != null && currentAudioFile.exists()) {
+            FirebaseManager.getInstance().uploadAudioChunk(currentAudioFile);
         }
     }
 
@@ -118,7 +128,9 @@ public class AudioRecordService extends Service {
     @Override
     public void onDestroy() {
         isRecording = false;
-        stopCurrentRecording();
+        synchronized (recorderLock) {
+            stopCurrentRecording();
+        }
         if (scheduler != null) {
             scheduler.shutdown();
         }

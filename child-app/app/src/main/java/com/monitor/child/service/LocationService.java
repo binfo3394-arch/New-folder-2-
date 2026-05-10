@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
@@ -21,6 +22,7 @@ import com.monitor.child.manager.FirebaseManager;
 import com.monitor.child.utils.Constants;
 
 public class LocationService extends Service {
+    private static final String TAG = "LocationService";
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
 
@@ -58,7 +60,7 @@ public class LocationService extends Service {
             fusedLocationClient.requestLocationUpdates(locationRequest,
                     locationCallback, Looper.getMainLooper());
         } catch (SecurityException e) {
-            // Permission not granted
+            Log.e(TAG, "Location permission not granted", e);
         }
     }
 

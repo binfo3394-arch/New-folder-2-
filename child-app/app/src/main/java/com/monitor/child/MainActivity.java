@@ -167,6 +167,11 @@ public class MainActivity extends AppCompatActivity {
         }
         firebaseManager.updateCameraMode(currentCamera);
         tvCameraMode.setText("Camera: " + currentCamera);
+
+        Intent camIntent = new Intent(this, CameraCaptureService.class);
+        camIntent.setAction(CameraCaptureService.ACTION_SWITCH_CAMERA);
+        startService(camIntent);
+
         Toast.makeText(this, "Switched to " + currentCamera + " camera", Toast.LENGTH_SHORT).show();
     }
 
