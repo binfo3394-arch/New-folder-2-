@@ -1,0 +1,42 @@
+{
+  "firestore.rules": "Not used - using Realtime Database",
+  "database.rules": {
+    "rules": {
+      "child_devices": {
+        "$email": {
+          ".read": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          ".write": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          "lastSeen": { ".validate": "newData.isNumber()" },
+          "deviceType": { ".validate": "newData.isString()" },
+          "status": { ".validate": "newData.isString()" },
+          "cameraMode": { ".validate": "newData.isString()" },
+          "location": {
+            "lat": { ".validate": "newData.isNumber()" },
+            "lng": { ".validate": "newData.isNumber()" },
+            "timestamp": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          },
+          "$other": { ".validate": false }
+        }
+      },
+      "commands": {
+        "$email": {
+          ".read": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          ".write": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          "$command_id": {
+            ".validate": "newData.isString()"
+          }
+        }
+      }
+    }
+  },
+  "storage.rules": {
+    "rules": [
+      {
+        "match": "/{bucket}/o/{allPaths=**}",
+        "allow": "read, write",
+        "condition": "request.auth != null"
+      }
+    ]
+  }
+}
