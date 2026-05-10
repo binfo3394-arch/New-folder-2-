@@ -113,6 +113,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void goToMain() {
+        if (isFinishing()) return;
         startActivity(new Intent(this, MainActivity.class));
         finish();
     }

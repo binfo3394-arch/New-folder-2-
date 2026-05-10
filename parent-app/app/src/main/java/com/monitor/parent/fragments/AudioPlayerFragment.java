@@ -54,7 +54,8 @@ public class AudioPlayerFragment extends Fragment {
         pollRunnable = new Runnable() {
             @Override
             public void run() {
-                if (isPolling && !mediaPlayer.isPlaying()) {
+                if (!isPolling) return;
+                if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
                     checkForNewAudio();
                 }
                 handler.postDelayed(this, Constants.POLL_INTERVAL_MS);
@@ -65,8 +66,10 @@ public class AudioPlayerFragment extends Fragment {
 
     private void checkForNewAudio() {
         FirebaseManager.getInstance().getLatestAudioUrl(url -> {
+            if (!isAdded()) return;
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     if (url != null && !url.equals(lastPlayedUrl)) {
                         lastPlayedUrl = url;
                         playAudio(url);
@@ -78,12 +81,14 @@ public class AudioPlayerFragment extends Fragment {
 
     private void playLatestAudio() {
         FirebaseManager.getInstance().getLatestAudioUrl(url -> {
+            if (!isAdded()) return;
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     if (url != null) {
                         lastPlayedUrl = url;
                         playAudio(url);
-                    } else {
+                    } else if (tvAudioStatus != null) {
                         tvAudioStatus.setText("No audio available");
                     }
                 });
@@ -92,20 +97,22 @@ public class AudioPlayerFragment extends Fragment {
     }
 
     private void playAudio(String url) {
+        if (tvAudioStatus == null) return;
         try {
             stopAudio();
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(url);
             mediaPlayer.prepareAsync();
             mediaPlayer.setOnPreparedListener(mp -> {
+                if (!isAdded()) return;
                 mp.start();
-                tvAudioStatus.setText("Playing...");
+                if (tvAudioStatus != null) tvAudioStatus.setText("Playing...");
             });
             mediaPlayer.setOnCompletionListener(mp -> {
-                tvAudioStatus.setText("Completed");
+                if (tvAudioStatus != null) tvAudioStatus.setText("Completed");
             });
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                tvAudioStatus.setText("Error playing audio");
+                if (tvAudioStatus != null) tvAudioStatus.setText("Error playing audio");
                 return true;
             });
         } catch (IOException e) {
@@ -115,12 +122,15 @@ public class AudioPlayerFragment extends Fragment {
 
     private void stopAudio() {
         if (mediaPlayer != null) {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.stop();
+            try {
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
+                mediaPlayer.release();
+            } catch (IllegalStateException ignored) {
             }
-            mediaPlayer.release();
             mediaPlayer = new MediaPlayer();
-            tvAudioStatus.setText("Stopped");
+            if (tvAudioStatus != null) tvAudioStatus.setText("Stopped");
         }
     }
 
@@ -132,7 +142,10 @@ public class AudioPlayerFragment extends Fragment {
             handler.removeCallbacks(pollRunnable);
         }
         if (mediaPlayer != null) {
-            mediaPlayer.release();
+            try {
+                mediaPlayer.release();
+            } catch (Exception ignored) {
+            }
             mediaPlayer = null;
         }
     }

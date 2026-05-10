@@ -12,8 +12,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Monitor"
         android:usesCleartextTraffic="true"
-        tools:targetApi="34"
-        tools:node="merge">
+        tools:targetApi="34">
 
         <provider
             android:name="com.google.firebase.provider.FirebaseInitProvider"

@@ -40,18 +40,19 @@ public class CallLogFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         FirebaseManager.getInstance().listenCallLogs(logs -> {
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (logs != null && !logs.isEmpty()) {
-                        adapter.setData(logs);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        tvEmpty.setVisibility(View.GONE);
-                    } else {
-                        recyclerView.setVisibility(View.GONE);
-                        tvEmpty.setVisibility(View.VISIBLE);
-                    }
-                });
-            }
+            if (!isAdded() || getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
+                if (recyclerView == null || tvEmpty == null) return;
+                if (logs != null && !logs.isEmpty()) {
+                    adapter.setData(logs);
+                    recyclerView.setVisibility(View.VISIBLE);
+                    tvEmpty.setVisibility(View.GONE);
+                } else {
+                    recyclerView.setVisibility(View.GONE);
+                    tvEmpty.setVisibility(View.VISIBLE);
+                }
+            });
         });
 
         return view;

@@ -20,7 +20,7 @@ public class ParentApp extends Application {
                     .setProjectId("sanchat-611e1")
                     .setStorageBucket("sanchat-611e1.firebasestorage.app")
                     .setGcmSenderId("792529827830")
-                    .setDatabaseUrl("https://sanchat-611e1-default-rtdb.firebaseio.com")
+                    .setDatabaseUrl("https://sanchat-611e1-default-rtdb.asia-southeast1.firebasedatabase.app")
                     .build();
             FirebaseApp.initializeApp(this, options);
         }

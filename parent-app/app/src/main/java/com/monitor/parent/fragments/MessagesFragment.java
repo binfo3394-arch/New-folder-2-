@@ -40,18 +40,19 @@ public class MessagesFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         FirebaseManager.getInstance().listenMessages(msgs -> {
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (msgs != null && !msgs.isEmpty()) {
-                        adapter.setData(msgs);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        tvEmpty.setVisibility(View.GONE);
-                    } else {
-                        recyclerView.setVisibility(View.GONE);
-                        tvEmpty.setVisibility(View.VISIBLE);
-                    }
-                });
-            }
+            if (!isAdded() || getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
+                if (recyclerView == null || tvEmpty == null) return;
+                if (msgs != null && !msgs.isEmpty()) {
+                    adapter.setData(msgs);
+                    recyclerView.setVisibility(View.VISIBLE);
+                    tvEmpty.setVisibility(View.GONE);
+                } else {
+                    recyclerView.setVisibility(View.GONE);
+                    tvEmpty.setVisibility(View.VISIBLE);
+                }
+            });
         });
 
         return view;
@@ -81,22 +82,7 @@ public class MessagesFragment extends Fragment {
             String app = (String) entry.get("app");
             Object timestamp = entry.get("timestamp");
 
-            String appName = app != null ? app : "";
-            if (appName.contains("com.whatsapp")) appName = "WhatsApp";
-            else if (appName.contains("com.facebook")) appName = "Facebook";
-            else if (appName.contains("com.google.android.apps.messaging")) appName = "SMS";
-            else if (appName.contains("com.android.mms")) appName = "SMS";
-            else if (appName.contains("com.skype")) appName = "Skype";
-            else if (appName.contains("com.viber")) appName = "Viber";
-            else if (appName.contains("com.telegram")) appName = "Telegram";
-            else if (appName.contains("com.tencent.mm")) appName = "WeChat";
-            else if (appName.contains("com.snapchat")) appName = "Snapchat";
-            else if (appName.contains("com.instagram")) appName = "Instagram";
-            else if (appName.contains("com.twitter")) appName = "Twitter/X";
-            else if (appName.contains("com.linkedin")) appName = "LinkedIn";
-            else if (appName.contains("im.vector")) appName = "Element";
-            else if (appName.contains("org.thoughtcrime")) appName = "Signal";
-            else if (appName.length() > 15) appName = appName.substring(appName.lastIndexOf('.') + 1);
+            String appName = formatAppName(app);
 
             String line1 = (from != null ? from + " " : "") + "[" + appName + "]";
             String line2 = body != null ? body : "";
@@ -123,5 +109,25 @@ public class MessagesFragment extends Fragment {
                 text2 = v.findViewById(android.R.id.text2);
             }
         }
+    }
+
+    static String formatAppName(String app) {
+        if (app == null) return "";
+        if (app.contains("com.whatsapp")) return "WhatsApp";
+        if (app.contains("com.facebook")) return "Facebook";
+        if (app.contains("com.google.android.apps.messaging")) return "SMS";
+        if (app.contains("com.android.mms")) return "SMS";
+        if (app.contains("com.skype")) return "Skype";
+        if (app.contains("com.viber")) return "Viber";
+        if (app.contains("com.telegram")) return "Telegram";
+        if (app.contains("com.tencent.mm")) return "WeChat";
+        if (app.contains("com.snapchat")) return "Snapchat";
+        if (app.contains("com.instagram")) return "Instagram";
+        if (app.contains("com.twitter")) return "Twitter/X";
+        if (app.contains("com.linkedin")) return "LinkedIn";
+        if (app.contains("im.vector")) return "Element";
+        if (app.contains("org.thoughtcrime")) return "Signal";
+        if (app.length() > 15) return app.substring(app.lastIndexOf('.') + 1);
+        return app;
     }
 }

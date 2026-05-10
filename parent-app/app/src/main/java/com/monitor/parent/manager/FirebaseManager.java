@@ -31,6 +31,9 @@ public class FirebaseManager {
     private FirebaseStorage mStorage;
     private String currentEmail;
     private ValueEventListener childStatusListener;
+    private ValueEventListener callLogListener;
+    private ValueEventListener messagesListener;
+    private ValueEventListener notificationsListener;
 
     private FirebaseManager() {
         mAuth = FirebaseAuth.getInstance();
@@ -151,8 +154,8 @@ public class FirebaseManager {
         locRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Double lat = snapshot.child("lat").getValue(Double.class);
-                Double lng = snapshot.child("lng").getValue(Double.class);
+                Double lat = toDouble(snapshot.child("lat").getValue());
+                Double lng = toDouble(snapshot.child("lng").getValue());
                 listener.onLocation(lat, lng);
             }
 
@@ -192,12 +195,13 @@ public class FirebaseManager {
     }
 
     public void listenCallLogs(final OnCallLogsListener listener) {
+        stopListeningCallLogs();
         String sanitized = getSanitizedEmail();
         DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized)
                 .child(Constants.STORAGE_CALL_LOGS_PATH);
 
-        ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
+        callLogListener = ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Map<String, Object>> logs = new ArrayList<>();
@@ -216,12 +220,13 @@ public class FirebaseManager {
     }
 
     public void listenMessages(final OnMessagesListener listener) {
+        stopListeningMessages();
         String sanitized = getSanitizedEmail();
         DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized)
                 .child(Constants.STORAGE_MESSAGES_PATH);
 
-        ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
+        messagesListener = ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Map<String, Object>> msgs = new ArrayList<>();
@@ -240,12 +245,13 @@ public class FirebaseManager {
     }
 
     public void listenNotifications(final OnNotificationsListener listener) {
+        stopListeningNotifications();
         String sanitized = getSanitizedEmail();
         DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized)
                 .child(Constants.STORAGE_NOTIFICATIONS_PATH);
 
-        ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
+        notificationsListener = ref.orderByKey().limitToLast(50).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Map<String, Object>> notifs = new ArrayList<>();
@@ -264,13 +270,17 @@ public class FirebaseManager {
     }
 
     public void savePairingCode(String code) {
-        if (currentEmail == null) return;
+        if (currentEmail == null) {
+            Log.w(TAG, "savePairingCode: currentEmail is null");
+            return;
+        }
         DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_PAIRINGS_NODE)
                 .child(code);
         Map<String, Object> data = new HashMap<>();
         data.put("email", currentEmail);
-        data.put("_createdAt", System.currentTimeMillis());
-        ref.setValue(data);
+        data.put("createdAt", System.currentTimeMillis());
+        ref.setValue(data)
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to save pairing code", e));
     }
 
     public void removePairingCode(String code) {
@@ -280,12 +290,47 @@ public class FirebaseManager {
     }
 
     public void cleanup() {
+        String sanitized = getSanitizedEmail();
+        DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE).child(sanitized);
         if (childStatusListener != null) {
-            String sanitized = getSanitizedEmail();
-            DatabaseReference statusRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
-                    .child(sanitized);
-            statusRef.removeEventListener(childStatusListener);
+            ref.removeEventListener(childStatusListener);
             childStatusListener = null;
+        }
+        stopListeningCallLogs();
+        stopListeningMessages();
+        stopListeningNotifications();
+    }
+
+    private void stopListeningCallLogs() {
+        if (callLogListener != null) {
+            String sanitized = getSanitizedEmail();
+            mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                    .child(sanitized)
+                    .child(Constants.STORAGE_CALL_LOGS_PATH)
+                    .removeEventListener(callLogListener);
+            callLogListener = null;
+        }
+    }
+
+    private void stopListeningMessages() {
+        if (messagesListener != null) {
+            String sanitized = getSanitizedEmail();
+            mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                    .child(sanitized)
+                    .child(Constants.STORAGE_MESSAGES_PATH)
+                    .removeEventListener(messagesListener);
+            messagesListener = null;
+        }
+    }
+
+    private void stopListeningNotifications() {
+        if (notificationsListener != null) {
+            String sanitized = getSanitizedEmail();
+            mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+                    .child(sanitized)
+                    .child(Constants.STORAGE_NOTIFICATIONS_PATH)
+                    .removeEventListener(notificationsListener);
+            notificationsListener = null;
         }
     }
 
@@ -302,7 +347,7 @@ public class FirebaseManager {
                 info.put("manufacturer", snapshot.child("manufacturer").getValue(String.class));
                 info.put("androidVersion", snapshot.child("androidVersion").getValue(String.class));
                 info.put("status", snapshot.child("status").getValue(String.class));
-                info.put("lastSeen", snapshot.child("lastSeen").getValue(Long.class));
+                info.put("lastSeen", toLong(snapshot.child("lastSeen").getValue()));
                 info.put("device", snapshot.child("device").getValue(String.class));
                 info.put("product", snapshot.child("product").getValue(String.class));
                 listener.onDeviceInfo(info);
@@ -313,6 +358,25 @@ public class FirebaseManager {
                 listener.onDeviceInfo(null);
             }
         });
+    }
+
+    private Double toDouble(Object value) {
+        if (value == null) return null;
+        if (value instanceof Double) return (Double) value;
+        if (value instanceof Long) return ((Long) value).doubleValue();
+        if (value instanceof Integer) return ((Integer) value).doubleValue();
+        if (value instanceof String) {
+            try { return Double.parseDouble((String) value); } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) return null;
+        if (value instanceof Long) return (Long) value;
+        if (value instanceof Integer) return ((Integer) value).longValue();
+        if (value instanceof Double) return ((Double) value).longValue();
+        return null;
     }
 
     public interface OnFrameUrlListener {

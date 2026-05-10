@@ -70,7 +70,8 @@ public class MainActivity extends AppCompatActivity {
         tvCameraMode = findViewById(R.id.tv_camera_mode);
         tvEmail = findViewById(R.id.tv_email);
 
-        tvEmail.setText("Paired as: " + firebaseManager.getCurrentEmail());
+        String email = firebaseManager.getCurrentEmail();
+        tvEmail.setText("Paired as: " + (email != null ? email : "unknown"));
         tvCameraMode.setText("Camera: " + Constants.CAMERA_FRONT);
         tvStatus.setText("Status: Stopped");
 
@@ -181,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        firebaseManager.cleanup();
         super.onDestroy();
     }
 }

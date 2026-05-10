@@ -31,7 +31,7 @@ public class ChildApp extends Application {
                     .setProjectId("sanchat-611e1")
                     .setStorageBucket("sanchat-611e1.firebasestorage.app")
                     .setGcmSenderId("792529827830")
-                    .setDatabaseUrl("https://sanchat-611e1-default-rtdb.firebaseio.com")
+                    .setDatabaseUrl("https://sanchat-611e1-default-rtdb.asia-southeast1.firebasedatabase.app")
                     .build();
             FirebaseApp.initializeApp(this, options);
         }
@@ -39,7 +39,13 @@ public class ChildApp extends Application {
 
     private void signInAnonymously() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            FirebaseAuth.getInstance().signInAnonymously();
+            FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnCompleteListener(task -> {
+                        if (!task.isSuccessful()) {
+                            android.util.Log.e("ChildApp", "Anonymous sign-in failed",
+                                    task.getException());
+                        }
+                    });
         }
     }
 

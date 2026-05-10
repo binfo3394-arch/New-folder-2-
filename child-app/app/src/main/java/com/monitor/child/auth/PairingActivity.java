@@ -28,6 +28,8 @@ public class PairingActivity extends AppCompatActivity {
     private Button btnPair;
     private ProgressBar progressBar;
     private boolean authReady = false;
+    private boolean isPairing = false;
+    private FirebaseAuth.AuthStateListener authStateListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,12 +48,13 @@ public class PairingActivity extends AppCompatActivity {
         btnPair = findViewById(R.id.btn_pair);
         progressBar = findViewById(R.id.progress_bar);
 
-        FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+        authStateListener = auth -> {
             if (auth.getCurrentUser() != null) {
                 authReady = true;
                 btnPair.setEnabled(true);
             }
-        });
+        };
+        FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
 
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             authReady = true;
@@ -64,7 +67,17 @@ public class PairingActivity extends AppCompatActivity {
         btnPair.setOnClickListener(v -> attemptPair());
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (authStateListener != null) {
+            FirebaseAuth.getInstance().removeAuthStateListener(authStateListener);
+            authStateListener = null;
+        }
+    }
+
     private void attemptPair() {
+        if (isPairing) return;
         if (!authReady) {
             Toast.makeText(this, "Still connecting. Please wait.", Toast.LENGTH_SHORT).show();
             return;
@@ -76,6 +89,7 @@ public class PairingActivity extends AppCompatActivity {
             return;
         }
 
+        isPairing = true;
         showProgress(true);
 
         DatabaseReference pairRef = FirebaseDatabase.getInstance()
@@ -85,6 +99,7 @@ public class PairingActivity extends AppCompatActivity {
         pairRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                isPairing = false;
                 showProgress(false);
                 String parentEmail = snapshot.child("email").getValue(String.class);
                 if (parentEmail != null) {
@@ -101,6 +116,7 @@ public class PairingActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
+                isPairing = false;
                 showProgress(false);
                 Toast.makeText(PairingActivity.this,
                         "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
@@ -115,6 +131,7 @@ public class PairingActivity extends AppCompatActivity {
     }
 
     private void goToMain() {
+        if (isFinishing()) return;
         startActivity(new Intent(this, MainActivity.class));
         finish();
     }

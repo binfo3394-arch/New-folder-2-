@@ -40,18 +40,19 @@ public class NotificationsFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         FirebaseManager.getInstance().listenNotifications(notifs -> {
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> {
-                    if (notifs != null && !notifs.isEmpty()) {
-                        adapter.setData(notifs);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        tvEmpty.setVisibility(View.GONE);
-                    } else {
-                        recyclerView.setVisibility(View.GONE);
-                        tvEmpty.setVisibility(View.VISIBLE);
-                    }
-                });
-            }
+            if (!isAdded() || getActivity() == null) return;
+            getActivity().runOnUiThread(() -> {
+                if (!isAdded()) return;
+                if (recyclerView == null || tvEmpty == null) return;
+                if (notifs != null && !notifs.isEmpty()) {
+                    adapter.setData(notifs);
+                    recyclerView.setVisibility(View.VISIBLE);
+                    tvEmpty.setVisibility(View.GONE);
+                } else {
+                    recyclerView.setVisibility(View.GONE);
+                    tvEmpty.setVisibility(View.VISIBLE);
+                }
+            });
         });
 
         return view;
@@ -81,26 +82,7 @@ public class NotificationsFragment extends Fragment {
             String text = (String) entry.get("text");
             Object timestamp = entry.get("timestamp");
 
-            String appName = app != null ? app : "";
-            if (appName.contains("com.whatsapp")) appName = "WhatsApp";
-            else if (appName.contains("com.facebook")) appName = "Facebook";
-            else if (appName.contains("com.google.android.apps.messaging")) appName = "SMS";
-            else if (appName.contains("com.android.mms")) appName = "SMS";
-            else if (appName.contains("com.google.android.gm")) appName = "Gmail";
-            else if (appName.contains("com.android.dialer")) appName = "Phone";
-            else if (appName.contains("com.android.phone")) appName = "Phone";
-            else if (appName.contains("com.android.contacts")) appName = "Contacts";
-            else if (appName.contains("com.skype")) appName = "Skype";
-            else if (appName.contains("com.viber")) appName = "Viber";
-            else if (appName.contains("com.telegram")) appName = "Telegram";
-            else if (appName.contains("com.tencent.mm")) appName = "WeChat";
-            else if (appName.contains("com.snapchat")) appName = "Snapchat";
-            else if (appName.contains("com.instagram")) appName = "Instagram";
-            else if (appName.contains("com.twitter")) appName = "Twitter/X";
-            else if (appName.contains("com.linkedin")) appName = "LinkedIn";
-            else if (appName.contains("im.vector")) appName = "Element";
-            else if (appName.contains("org.thoughtcrime")) appName = "Signal";
-            else if (appName.length() > 15) appName = appName.substring(appName.lastIndexOf('.') + 1);
+            String appName = MessagesFragment.formatAppName(app);
 
             String line1 = "[" + appName + "] " + (title != null ? title : "");
             String line2 = text != null ? text : "";

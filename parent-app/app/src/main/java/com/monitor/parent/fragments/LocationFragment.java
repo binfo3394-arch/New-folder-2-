@@ -58,8 +58,11 @@ public class LocationFragment extends Fragment {
 
     private void refreshLocation() {
         FirebaseManager.getInstance().getChildLocation((lat, lng) -> {
+            if (!isAdded()) return;
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    if (tvLatitude == null || tvLongitude == null || tvLocationStatus == null) return;
                     if (lat != null && lng != null) {
                         tvLatitude.setText("Latitude: " + String.format("%.6f", lat));
                         tvLongitude.setText("Longitude: " + String.format("%.6f", lng));

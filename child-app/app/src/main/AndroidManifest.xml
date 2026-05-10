@@ -18,6 +18,7 @@
     <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -30,7 +31,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Monitor"
         android:usesCleartextTraffic="true"
-        tools:targetApi="35"
+        tools:targetApi="34"
         tools:node="merge">
 
         <provider

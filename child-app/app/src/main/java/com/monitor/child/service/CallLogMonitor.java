@@ -48,6 +48,7 @@ public class CallLogMonitor extends Service {
     }
 
     private void readLatestCallLog() {
+        Cursor cursor = null;
         try {
             String[] projection = {
                     CallLog.Calls.NUMBER,
@@ -56,7 +57,7 @@ public class CallLogMonitor extends Service {
                     CallLog.Calls.DATE
             };
 
-            Cursor cursor = getContentResolver().query(
+            cursor = getContentResolver().query(
                     CallLog.Calls.CONTENT_URI,
                     projection,
                     null, null,
@@ -81,10 +82,10 @@ public class CallLogMonitor extends Service {
 
                 Log.d(TAG, "Call log: " + number + " " + typeStr);
             }
-
-            if (cursor != null) cursor.close();
         } catch (SecurityException e) {
             Log.e(TAG, "Permission denied: " + e.getMessage());
+        } finally {
+            if (cursor != null) cursor.close();
         }
     }
 

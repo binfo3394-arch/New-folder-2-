@@ -66,8 +66,11 @@ public class CameraViewFragment extends Fragment {
 
     private void refreshFrame() {
         FirebaseManager.getInstance().getLatestCameraFrameUrl(url -> {
+            if (!isAdded()) return;
             if (getActivity() != null) {
                 getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    if (ivCameraFeed == null || tvCameraStatus == null) return;
                     if (url != null) {
                         Glide.with(CameraViewFragment.this)
                                 .load(url)

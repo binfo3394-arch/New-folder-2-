@@ -17,7 +17,7 @@
     <ImageView
         android:layout_width="80dp"
         android:layout_height="80dp"
-        android:src="@android:drawable/ic_menu_mylocation"
+        android:src="@drawable/ic_location"
         android:layout_marginBottom="24dp"/>
 
     <TextView

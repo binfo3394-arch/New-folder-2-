@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
                 firebaseManager.setCurrentEmail(email);
             }
         }
-        tvChildEmail.setText("Paired as: " + (email != null ? email : "unknown"));
+        tvChildEmail.setText("Parent email: " + (email != null ? email : "unknown"));
 
         generateAndShowPairingCode();
 
@@ -91,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadDeviceInfo() {
         FirebaseManager.getInstance().getDeviceInfo(info -> {
+            if (isFinishing() || isDestroyed()) return;
             runOnUiThread(() -> {
                 if (info == null) return;
                 String model = (String) info.get("model");
@@ -98,15 +99,16 @@ public class MainActivity extends AppCompatActivity {
                 String androidVer = (String) info.get("androidVersion");
                 Long lastSeen = (Long) info.get("lastSeen");
 
+                if (tvDeviceModel == null) return;
                 if (model != null && manufacturer != null) {
                     tvDeviceModel.setText("Device: " + manufacturer + " " + model);
                 } else if (model != null) {
                     tvDeviceModel.setText("Device: " + model);
                 }
-                if (androidVer != null) {
+                if (androidVer != null && tvDeviceAndroid != null) {
                     tvDeviceAndroid.setText("Android: " + androidVer);
                 }
-                if (lastSeen != null) {
+                if (lastSeen != null && tvLastSeen != null) {
                     java.text.SimpleDateFormat sdf =
                             new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
                                     java.util.Locale.getDefault());
@@ -120,14 +122,12 @@ public class MainActivity extends AppCompatActivity {
         if (currentPairingCode != null) {
             firebaseManager.removePairingCode(currentPairingCode);
         }
-        currentPairingCode = String.format("%06d", new Random().nextInt(999999));
+        currentPairingCode = String.format("%06d", new Random().nextInt(1000000));
         firebaseManager.savePairingCode(currentPairingCode);
         tvPairingCode.setText(currentPairingCode);
 
         SharedPreferences prefs = getSharedPreferences("parent_prefs", MODE_PRIVATE);
         prefs.edit().putString(Constants.PREF_PAIRING_CODE, currentPairingCode).apply();
-
-        Toast.makeText(this, "Pairing code: " + currentPairingCode, Toast.LENGTH_LONG).show();
     }
 
     @Override
