@@ -1,7 +1,9 @@
 package com.monitor.parent;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,13 +16,18 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.monitor.parent.adapters.MonitorPagerAdapter;
 import com.monitor.parent.manager.FirebaseManager;
+import com.monitor.parent.utils.Constants;
+
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private FirebaseManager firebaseManager;
     private ViewPager2 viewPager;
     private TabLayout tabLayout;
-    private TextView tvChildEmail, tvStatus;
+    private TextView tvChildEmail, tvStatus, tvPairingCode;
+    private Button btnNewCode;
     private MonitorPagerAdapter pagerAdapter;
+    private String currentPairingCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
 
         tvChildEmail = findViewById(R.id.tv_child_email);
         tvStatus = findViewById(R.id.tv_status);
+        tvPairingCode = findViewById(R.id.tv_pairing_code);
+        btnNewCode = findViewById(R.id.btn_new_code);
         viewPager = findViewById(R.id.view_pager);
         tabLayout = findViewById(R.id.tab_layout);
 
@@ -39,7 +48,11 @@ public class MainActivity extends AppCompatActivity {
             FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user != null) email = user.getEmail();
         }
-        tvChildEmail.setText("Child: " + (email != null ? email : "unknown"));
+        tvChildEmail.setText("Paired as: " + (email != null ? email : "unknown"));
+
+        generateAndShowPairingCode();
+
+        btnNewCode.setOnClickListener(v -> generateAndShowPairingCode());
 
         pagerAdapter = new MonitorPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
@@ -64,6 +77,20 @@ public class MainActivity extends AppCompatActivity {
                 tvStatus.setText(s);
             });
         });
+    }
+
+    private void generateAndShowPairingCode() {
+        if (currentPairingCode != null) {
+            firebaseManager.removePairingCode(currentPairingCode);
+        }
+        currentPairingCode = String.format("%06d", new Random().nextInt(999999));
+        firebaseManager.savePairingCode(currentPairingCode);
+        tvPairingCode.setText(currentPairingCode);
+
+        SharedPreferences prefs = getSharedPreferences("parent_prefs", MODE_PRIVATE);
+        prefs.edit().putString(Constants.PREF_PAIRING_CODE, currentPairingCode).apply();
+
+        Toast.makeText(this, "Pairing code: " + currentPairingCode, Toast.LENGTH_LONG).show();
     }
 
     @Override

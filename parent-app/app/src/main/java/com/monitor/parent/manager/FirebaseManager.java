@@ -19,6 +19,7 @@ import com.google.firebase.storage.StorageReference;
 import com.monitor.parent.utils.Constants;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -260,6 +261,22 @@ public class FirebaseManager {
                 listener.onNotifications(null);
             }
         });
+    }
+
+    public void savePairingCode(String code) {
+        if (currentEmail == null) return;
+        DatabaseReference ref = mDatabase.getReference(Constants.FIREBASE_PAIRINGS_NODE)
+                .child(code);
+        Map<String, Object> data = new HashMap<>();
+        data.put("email", currentEmail);
+        data.put("_createdAt", System.currentTimeMillis());
+        ref.setValue(data);
+    }
+
+    public void removePairingCode(String code) {
+        mDatabase.getReference(Constants.FIREBASE_PAIRINGS_NODE)
+                .child(code)
+                .removeValue();
     }
 
     public void cleanup() {

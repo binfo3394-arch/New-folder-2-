@@ -7,6 +7,7 @@ import android.os.Build;
 
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.monitor.child.utils.Constants;
 
 public class ChildApp extends Application {
@@ -18,6 +19,7 @@ public class ChildApp extends Application {
     public void onCreate() {
         super.onCreate();
         initFirebase();
+        signInAnonymously();
         createNotificationChannels();
     }
 
@@ -32,6 +34,12 @@ public class ChildApp extends Application {
                     .setDatabaseUrl("https://sanchat-611e1-default-rtdb.firebaseio.com")
                     .build();
             FirebaseApp.initializeApp(this, options);
+        }
+    }
+
+    private void signInAnonymously() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            FirebaseAuth.getInstance().signInAnonymously();
         }
     }
 

@@ -4,6 +4,7 @@ public class Constants {
     public static final String FIREBASE_CHILD_NODE = "child_devices";
     public static final String FIREBASE_COMMANDS_NODE = "commands";
     public static final String FIREBASE_STATUS_NODE = "status";
+    public static final String FIREBASE_PAIRINGS_NODE = "pairings";
 
     public static final String COMMAND_SWITCH_CAMERA = "switch_camera";
     public static final String COMMAND_START_MONITORING = "start_monitoring";
@@ -30,4 +31,7 @@ public class Constants {
     public static final int NOTIFICATION_ID_NOTIFICATIONS = 1005;
     public static final String NOTIFICATION_CHANNEL_CALL = "channel_call_logs";
     public static final String NOTIFICATION_CHANNEL_NOTIF = "channel_notifications";
+
+    public static final String PREF_PAIRED_EMAIL = "paired_email";
+    public static final String PREF_PAIRING_DATA = "pairing_data";
 }

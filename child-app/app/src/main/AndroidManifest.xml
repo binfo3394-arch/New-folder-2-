@@ -37,7 +37,7 @@
             tools:node="remove" />
 
         <activity
-            android:name=".auth.LoginActivity"
+            android:name=".auth.PairingActivity"
             android:exported="true"
             android:theme="@style/Theme.Monitor">
             <intent-filter>
@@ -45,6 +45,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".auth.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Monitor" />
 
         <activity
             android:name=".MainActivity"

@@ -2,10 +2,19 @@
   "firestore.rules": "Not used - using Realtime Database",
   "database.rules": {
     "rules": {
+      "pairings": {
+        "$code": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email != null",
+          "email": { ".validate": "newData.isString()" },
+          "_createdAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        }
+      },
       "child_devices": {
         "$email": {
-          ".read": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
-          ".write": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          ".read": "auth != null",
+          ".write": "auth != null",
           "lastSeen": { ".validate": "newData.isNumber()" },
           "deviceType": { ".validate": "newData.isString()" },
           "status": { ".validate": "newData.isString()" },
@@ -15,14 +24,13 @@
             "lng": { ".validate": "newData.isNumber()" },
             "timestamp": { ".validate": "newData.isNumber()" },
             "$other": { ".validate": false }
-          },
-          "$other": { ".validate": false }
+          }
         }
       },
       "commands": {
         "$email": {
-          ".read": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
-          ".write": "auth != null && auth.token.email.replace('.', '_').replace('@', '_at_') == $email",
+          ".read": "auth != null",
+          ".write": "auth != null",
           "$command_id": {
             ".validate": "newData.isString()"
           }

