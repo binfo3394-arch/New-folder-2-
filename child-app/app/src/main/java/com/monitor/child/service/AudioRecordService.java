@@ -28,7 +28,7 @@ public class AudioRecordService extends Service {
     private final Object recorderLock = new Object();
     private MediaRecorder mediaRecorder;
     private ScheduledExecutorService scheduler;
-    private File currentAudioFile;
+    private File recordedFile;
     private boolean isRecording = false;
 
     @Override
@@ -53,9 +53,13 @@ public class AudioRecordService extends Service {
     }
 
     private void recordChunk() {
+        File uploadedFile;
         synchronized (recorderLock) {
-            stopCurrentRecording();
+            uploadedFile = stopCurrentRecording();
             startNewRecording();
+        }
+        if (uploadedFile != null && uploadedFile.exists()) {
+            FirebaseManager.getInstance().uploadAudioChunk(uploadedFile);
         }
     }
 
@@ -66,7 +70,7 @@ public class AudioRecordService extends Service {
                 audioDir.mkdirs();
             }
 
-            currentAudioFile = new File(audioDir, "audio_" + System.currentTimeMillis() + ".amr");
+            recordedFile = new File(audioDir, "audio_" + System.currentTimeMillis() + ".amr");
 
             mediaRecorder = new MediaRecorder();
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -75,11 +79,11 @@ public class AudioRecordService extends Service {
             mediaRecorder.setAudioChannels(1);
             mediaRecorder.setAudioSamplingRate(8000);
             mediaRecorder.setAudioEncodingBitRate(12200);
-            mediaRecorder.setOutputFile(currentAudioFile.getAbsolutePath());
+            mediaRecorder.setOutputFile(recordedFile.getAbsolutePath());
             mediaRecorder.prepare();
             mediaRecorder.start();
 
-            Log.d(TAG, "Audio recording started: " + currentAudioFile.getName());
+            Log.d(TAG, "Audio recording started: " + recordedFile.getName());
 
         } catch (IOException | SecurityException e) {
             Log.e(TAG, "Error starting audio recording: " + e.getMessage());
@@ -90,12 +94,14 @@ public class AudioRecordService extends Service {
         }
     }
 
-    private void stopCurrentRecording() {
-        if (mediaRecorder == null) return;
+    private File stopCurrentRecording() {
+        if (mediaRecorder == null) return null;
+        File toUpload = recordedFile;
         try {
             mediaRecorder.stop();
         } catch (Exception e) {
             Log.e(TAG, "Error stopping recorder: " + e.getMessage());
+            toUpload = null;
         }
         try {
             mediaRecorder.release();
@@ -103,10 +109,8 @@ public class AudioRecordService extends Service {
             Log.e(TAG, "Error releasing recorder: " + e.getMessage());
         }
         mediaRecorder = null;
-
-        if (currentAudioFile != null && currentAudioFile.exists()) {
-            FirebaseManager.getInstance().uploadAudioChunk(currentAudioFile);
-        }
+        recordedFile = null;
+        return toUpload;
     }
 
     private android.app.Notification createNotification() {

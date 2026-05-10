@@ -4,7 +4,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.ImageFormat;
-import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -14,7 +13,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -32,23 +30,27 @@ import com.monitor.child.utils.Constants;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class CameraCaptureService extends Service {
     private static final String TAG = "CameraCaptureService";
+    public static final String ACTION_SWITCH_CAMERA = "com.monitor.child.action.SWITCH_CAMERA";
 
     private CameraManager cameraManager;
     private CameraDevice cameraDevice;
-    private CameraCaptureSession captureSession;
+    private volatile CameraCaptureSession captureSession;
     private ImageReader imageReader;
+    private ImageReader stillReader;
     private Handler backgroundHandler;
     private HandlerThread backgroundThread;
     private ScheduledExecutorService scheduler;
     private String cameraId;
     private boolean isRunning = false;
     private String currentCamera = Constants.CAMERA_FRONT;
+    private ScheduledFuture<?> captureTask;
 
     @Override
     public void onCreate() {
@@ -59,8 +61,6 @@ public class CameraCaptureService extends Service {
         backgroundHandler = new Handler(backgroundThread.getLooper());
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
-
-    public static final String ACTION_SWITCH_CAMERA = "com.monitor.child.action.SWITCH_CAMERA";
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -86,7 +86,6 @@ public class CameraCaptureService extends Service {
                 Log.e(TAG, "No camera found for: " + currentCamera);
                 return;
             }
-
             cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
         } catch (CameraAccessException | SecurityException e) {
             Log.e(TAG, "Error opening camera: " + e.getMessage());
@@ -130,11 +129,15 @@ public class CameraCaptureService extends Service {
             Size captureSize = sizes[0];
 
             imageReader = ImageReader.newInstance(captureSize.getWidth(), captureSize.getHeight(),
-                    ImageFormat.JPEG, 2);
+                    ImageFormat.JPEG, 5);
             imageReader.setOnImageAvailableListener(imageReaderListener, backgroundHandler);
 
+            stillReader = ImageReader.newInstance(captureSize.getWidth(), captureSize.getHeight(),
+                    ImageFormat.JPEG, 2);
+            stillReader.setOnImageAvailableListener(stillImageReaderListener, backgroundHandler);
+
             cameraDevice.createCaptureSession(
-                    Arrays.asList(imageReader.getSurface()),
+                    Arrays.asList(imageReader.getSurface(), stillReader.getSurface()),
                     captureSessionCallback,
                     backgroundHandler
             );
@@ -147,7 +150,7 @@ public class CameraCaptureService extends Service {
         @Override
         public void onConfigured(@NonNull CameraCaptureSession session) {
             captureSession = session;
-            startRepeatingCapture();
+            startPreviewCapture();
         }
 
         @Override
@@ -156,7 +159,7 @@ public class CameraCaptureService extends Service {
         }
     };
 
-    private void startRepeatingCapture() {
+    private void startPreviewCapture() {
         try {
             CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             builder.addTarget(imageReader.getSurface());
@@ -164,7 +167,10 @@ public class CameraCaptureService extends Service {
 
             captureSession.setRepeatingRequest(builder.build(), null, backgroundHandler);
 
-            scheduler.scheduleAtFixedRate(this::captureStill, 0,
+            if (captureTask != null) {
+                captureTask.cancel(false);
+            }
+            captureTask = scheduler.scheduleAtFixedRate(this::captureStill, 0,
                     Constants.CAMERA_CAPTURE_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
         } catch (CameraAccessException e) {
@@ -176,7 +182,7 @@ public class CameraCaptureService extends Service {
         if (cameraDevice == null || captureSession == null) return;
         try {
             CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            builder.addTarget(imageReader.getSurface());
+            builder.addTarget(stillReader.getSurface());
             builder.set(CaptureRequest.JPEG_QUALITY, (byte) 50);
             builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
 
@@ -191,6 +197,13 @@ public class CameraCaptureService extends Service {
     private final ImageReader.OnImageAvailableListener imageReaderListener = reader -> {
         Image image = reader.acquireLatestImage();
         if (image != null) {
+            image.close();
+        }
+    };
+
+    private final ImageReader.OnImageAvailableListener stillImageReaderListener = reader -> {
+        Image image = reader.acquireLatestImage();
+        if (image != null) {
             ByteBuffer buffer = image.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
@@ -202,6 +215,10 @@ public class CameraCaptureService extends Service {
 
     public void switchCamera() {
         backgroundHandler.post(() -> {
+            if (captureTask != null) {
+                captureTask.cancel(false);
+                captureTask = null;
+            }
             closeCamera();
             currentCamera = currentCamera.equals(Constants.CAMERA_FRONT) ?
                     Constants.CAMERA_BACK : Constants.CAMERA_FRONT;
@@ -238,6 +255,10 @@ public class CameraCaptureService extends Service {
             imageReader.close();
             imageReader = null;
         }
+        if (stillReader != null) {
+            stillReader.close();
+            stillReader = null;
+        }
         if (cameraDevice != null) {
             cameraDevice.close();
             cameraDevice = null;
@@ -263,6 +284,10 @@ public class CameraCaptureService extends Service {
     @Override
     public void onDestroy() {
         isRunning = false;
+        if (captureTask != null) {
+            captureTask.cancel(false);
+            captureTask = null;
+        }
         closeCamera();
         if (scheduler != null) {
             scheduler.shutdown();
