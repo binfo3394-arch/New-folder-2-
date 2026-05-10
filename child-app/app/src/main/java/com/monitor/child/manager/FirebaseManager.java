@@ -11,7 +11,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReferenceerence;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
@@ -84,7 +84,7 @@ public class FirebaseManager {
 
     private void initDeviceNode() {
         String sanitized = getSanitizedEmail();
-        DatabaseReferenceerence deviceRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+        DatabaseReference deviceRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized);
 
         Map<String, Object> deviceInfo = new HashMap<>();
@@ -129,7 +129,7 @@ public class FirebaseManager {
 
     public void uploadLocation(double latitude, double longitude) {
         String sanitized = getSanitizedEmail();
-        DatabaseReferenceerence locRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
+        DatabaseReference locRef = mDatabase.getReference(Constants.FIREBASE_CHILD_NODE)
                 .child(sanitized)
                 .child(Constants.STORAGE_LOCATION_PATH);
 
@@ -228,7 +228,7 @@ public class FirebaseManager {
         }
 
         String sanitized = getSanitizedEmail();
-        DatabaseReferenceerence cmdRef = mDatabase.getReference(Constants.FIREBASE_COMMANDS_NODE)
+        DatabaseReference cmdRef = mDatabase.getReference(Constants.FIREBASE_COMMANDS_NODE)
                 .child(sanitized);
 
         commandListenerRef = cmdRef.addValueEventListener(new ValueEventListener() {
